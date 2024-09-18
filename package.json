@@ -1,0 +1,31 @@
+{
+  "name": "appointment-scheduler",
+  "version": "1.0.0",
+  "description": "indra backend developer test",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc",
+    "start": "tsc && node dist/handlers/appointment.js",
+    "offline": "serverless offline",
+    "deploy": "serverless deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["appointment", "scheduler", "aws", "sns", "sqs", "event bridge", "rds"],
+  "author": "Olvis Quintana",
+  "license": "ISC",
+  "dependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.5.5",
+    "aws-sdk": "^2.1691.0",
+    "mysql2": "^3.11.3",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-offline": "^13.8.0",
+    "serverless-plugin-typescript": "^2.1.5",
+    "typescript": "^5.6.2"
+  },
+  "devDependencies": {
+    "@types/mysql": "^2.15.26",
+    "serverless": "^4.3.3"
+  }
+}

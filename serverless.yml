@@ -1,0 +1,112 @@
+service: appointment-scheduler
+
+frameworkVersion: '>=4.0.0 <5.0.0'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  deploymentBucket:
+    name: appointment-scheduler-deployment-bucket
+  environment:
+    DYNAMODB_TABLE: ${env:DYNAMODB_TABLE}
+    SNS_TOPIC_PE: ${env:SNS_TOPIC_PE}
+    SNS_TOPIC_CL: ${env:SNS_TOPIC_CL}
+    RDS_HOST: ${env:RDS_HOST}
+    RDS_USER: ${env:RDS_USER}
+    RDS_PASSWORD: ${env:RDS_PASSWORD}
+    RDS_DATABASE: ${env:RDS_DATABASE}
+
+functions:
+  appointment:
+    handler: dist/infrastructure/handlers/appointmentHandler.handler
+    events:
+      - http:
+          path: appointment
+          method: post
+      - http:
+          path: appointment/{insuredId}
+          method: get
+
+  appointmentPE:
+    handler: dist/infrastructure/handlers/appointmentPEHandler.handler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [SQSPEQueue, Arn]
+
+  appointmentCL:
+    handler: dist/infrastructure/handlers/appointmentCLHandler.handler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [SQSCLQueue, Arn]
+
+  updateAppointmentStatus:
+    handler: dist/infrastructure/handlers/updateAppointmentStatusHandler.sqsHandler
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [SQSAppointmentCompletionQueue, Arn]
+
+resources:
+  Resources:
+    AppointmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: insuredId
+            AttributeType: S
+          - AttributeName: scheduleId
+            AttributeType: N
+        KeySchema:
+          - AttributeName: insuredId
+            KeyType: HASH
+          - AttributeName: scheduleId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    SNSTopicPE:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: sns_topic_pe
+
+    SNSTopicCL:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: sns_topic_cl
+      
+    SQSPEQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: SQS_PE
+
+    SQSCLQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: SQS_CL
+
+    SQSAppointmentCompletionQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: SQS_Appointment_Completion
+
+package:
+  individually: true
+  exclude:
+    - node_modules/**
+    - dist/**
+    - .git/**
+    - .vscode/**
+    - '*.md'
+    - .env
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3001
